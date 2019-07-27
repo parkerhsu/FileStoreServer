@@ -2,6 +2,7 @@ package meta
 
 import(
 	"sort"
+	"FileStoreServer/db"
 )
 
 // file information
@@ -24,9 +25,28 @@ func UpdateFileMeta(fMeta FileMeta) {
 	fileMetas[fMeta.FileSha1] = fMeta
 }
 
+func UpdateFileMetaDB(fMeta FileMeta) bool {
+	return db.FileUpload(fMeta.FileSha1, fMeta.FileName, fMeta.FileSize, fMeta.Location)
+}
+
 // return FileMeta
 func GetFileMeta(fileSha1 string) FileMeta {
 	return fileMetas[fileSha1]
+}
+
+func GetFileMetaDB(filesha1 string) (FileMeta, error) {
+	tFile, err := db.GetFileMeta(filesha1)
+	if err != nil {
+		return FileMeta{}, err
+	}
+	
+	fMeta := FileMeta{
+		FileSha1: tFile.FileHash,
+		FileName: tFile.FileName.String,
+		FileSize: tFile.FileSize.Int64,
+		Location: tFile.FileAddr.String,
+	}
+	return fMeta, nil
 }
 
 func GetLastFileMeta(count int) []FileMeta {
