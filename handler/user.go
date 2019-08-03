@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"time"
 	"fmt"
+	"log"
+	_ "encoding/json"
 
 	"FileStoreServer/util"
 	"FileStoreServer/db"
@@ -33,9 +35,8 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 		encPasswd := util.Sha1([]byte(passwd+pwd_salt))
 		suc := db.UserSignUp(userName, encPasswd)
 		if suc {
-			w.Write([]byte("SUCCESS"))
+			http.Redirect(w, r, "/", http.StatusFound)
 		} else {
-			
 			w.Write([]byte("Sign up failed!"))
 		}
 	}
@@ -43,57 +44,68 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 
 func SignInHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
-		http.Redirect(w, r, "/static/view/signin.html", http.StatusFound)
+		data, err := ioutil.ReadFile("./static/view/signin.html")
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Write(data)
 		return
+	} else {
+		r.ParseForm()
+		username := r.Form.Get("username")
+		password := r.Form.Get("password")
+	
+		encPasswd := util.Sha1([]byte(password + pwd_salt))
+	
+		// 1. 校验用户名及密码
+		pwdChecked := db.UserSignin(username, encPasswd)
+		if !pwdChecked {
+			log.Println("pwd check failed")
+			w.Write([]byte("FAILED"))
+			return
+		}
+	
+		// 2. 生成访问凭证(token)
+		token := GenToken(username)
+		upRes := db.UpdateToken(username, token)
+		if !upRes {
+			log.Println("update token failed")
+			w.Write([]byte("FAILED"))
+			return
+		}
+	
+		// 3. 登录成功后重定向到首页
+		//w.Write([]byte("http://" + r.Host + "/static/view/home.html"))
+		resp := util.RespMsg{
+			Code: 0,
+			Msg:  "OK",
+			Data: struct {
+				Location string
+				Username string
+				Token    string
+			}{
+				Location: "http://" + r.Host + "/static/view/home.html",
+				Username: username,
+				Token:    token,
+			},
+		}
+		w.Write(resp.JSONBytes())
 	}
-	r.ParseForm()
-	username := r.Form.Get("username")
-	passwd := r.Form.Get("password")
-	encPasswd := util.Sha1([]byte(passwd+pwd_salt))
-
-	// 密码检测
-	pwdChecked := db.UserSignin(username, encPasswd)
-	if !pwdChecked {
-		w.Write([]byte("FAILED"))
-		return
-	}
-
-	// 生成token
-	token := GetToken(username)
-	suc := db.UpdateToken(username, token)
-	if !suc {
-		w.Write([]byte("FAILED"))
-		return
-	}
-
-	// 重定向到用户首页
-	resp := util.RespMsg{
-		Code: 0,
-		Msg:  "OK",
-		Data: struct {
-			Location string
-			Username string
-			Token    string
-		}{
-			Location: "http://" + r.Host + "/static/view/home.html",
-			Username: username,
-			Token:    token,
-		},
-	}
-	w.Write(resp.JSONBytes())
 }
 
 func UserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	username := r.Form.Get("username")
-	token := r.Form.Get("token")
 
+	/*
 	isValid := IsTokenValid(token)
 	if !isValid {
 		w.WriteHeader(http.StatusForbidden)
 		return
-	}
+	}*/
 
+	// 获取用户信息
 	user, err := db.GetUserInfo(username)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -103,12 +115,12 @@ func UserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	resp := util.RespMsg{
 		Code: 0,
 		Msg:  "OK",
-		Data: user,
+		Data: user,	
 	}
 	w.Write(resp.JSONBytes())
 }
 
-func GetToken(username string) string {
+func GenToken(username string) string {
 	ts := fmt.Sprintf("%x", time.Now().Unix())
 	tokenPrefix := util.MD5([]byte(username + ts))
 	return tokenPrefix + ts[:8]

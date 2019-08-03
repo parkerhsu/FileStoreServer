@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"FileStoreServer/util"
+	_"FileStoreServer/util"
 	"net/http"
 )
 
@@ -16,12 +16,7 @@ func HTTPInterceptor(h http.HandlerFunc) http.HandlerFunc {
 			//验证登录token是否有效
 			if len(username) < 3 || !IsTokenValid(token) {
 				// token校验失败则跳转到直接返回失败提示
-				resp := util.NewRespMsg(
-					1,
-					"token无效",
-					nil,
-				)
-				w.Write(resp.JSONBytes())
+				w.WriteHeader(http.StatusForbidden)
 				return
 			}
 			h(w, r)
