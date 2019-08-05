@@ -4,10 +4,10 @@ A simple and efficient cloud application for storing files.
 ## Todo
 
 - [x] upload/download api
-- [ ] store file into mysql
-- [ ] user login
-- [ ] hash for fast upload
-- [ ] redis for cache
+- [x] store file into mysql
+- [x] user login
+- [x] hash for fast upload
+- [x] redis for cache
 - [ ] connect Ceph
 - [ ] connect OSS
 - [ ] asyn upload by RabbitMQ
