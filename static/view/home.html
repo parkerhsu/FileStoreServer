@@ -120,6 +120,15 @@
                     return;
                 }
 
+                var downloadHtml = '<button class="btn btn-success" ' +
+                'style="height:30px;margin:5px 0;"' +
+                'onClick = "downloadFile(\''+serverHost+'/file/' +
+                'downloadurl?filehash={0}&{1}\')">下载</button>';
+                var renameFileHtml = '<button class="btn btn-success" ' +
+                'style="height:30px;margin:5px 3px;"' +
+                'onClick = "renameFile(\'{0}\',\'{1}\',\''+serverHost+'/file/' +
+                'update?op=0&filehash={2}&{3}\')">重命名</button>';
+
                 for (var i = 0; i < data.length; i++) {
                     var x = document.getElementById('filetbl').insertRow();
                     var cell = x.insertCell();
@@ -136,6 +145,11 @@
 
                     cell = x.insertCell();
                     cell.innerHTML = data[i].LastUpdate;
+
+                    cell = x.insertCell();
+                    cell.innerHTML = downloadHtml.format(data[i].FileHash, queryParams()) +
+                        renameFileHtml.format(data[i].FileHash, data[i].FileName, data[i].FileHash,
+                        queryParams());
                 }
             }
         });
@@ -144,6 +158,58 @@
     function toUploadFile() {
         window.location.href = '/file/upload?' + queryParams();
     }
+
+    function downloadFile(durl) {
+    $.ajax({
+      url: durl,
+      type: "POST",
+      error: function (jqXHR, textStatus, errorThrown) {
+        if (textStatus == "error") {
+          alert(textStatus + " : " + errorThrown);
+        } else {
+          alert(textStatus);
+        }
+      },
+      success: function (body, textStatus, jqXHR) {
+        try {
+          alert("文件即将下载自: " + body);
+          var elemIF = document.createElement("iframe");
+          elemIF.src = body;
+          elemIF.style.display = "none";
+          document.body.appendChild(elemIF);
+        } catch (e) {
+          alert(e);
+        }
+      }
+    });
+  }
+
+  function renameFile(filehash, filename, renameUrl) {
+    var newFileName = prompt("\n当前文件名: {0}\n\n请输入新的文件名: ".format(filename));
+    newFileName = newFileName.trim();
+
+    if (newFileName.length <= 0) {
+      alert("文件名不能为空");
+      return;
+    }
+
+    if (newFileName.indexOf(" ") >= 0) {
+      alert("文件名不能包含空格");
+      return;
+    }
+
+    $.ajax({
+      url: renameUrl + "&filename=" + newFileName,
+      type: "POST",
+      error: function (msg) {
+        alert(msg);
+      },
+      success: function (body) {
+        alert("文件名修改成功");
+        window.location.href = '/static/view/home.html';
+      }
+    });
+  }
 
 </script>
 

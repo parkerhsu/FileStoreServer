@@ -26,6 +26,9 @@ func main() {
 	http.HandleFunc("/file/mpupload/complete",
 		handler.HTTPInterceptor(handler.CompleteUploadHandler))
 
+	// 获取OSS下载url
+	http.HandleFunc("/file/downloadurl", handler.DownloadURLHandler)
+
 	http.HandleFunc("/user/signup", handler.SignupHandler)
 	http.HandleFunc("/user/signin", handler.SignInHandler)
 	http.HandleFunc("/user/info", handler.HTTPInterceptor(handler.UserInfoHandler))

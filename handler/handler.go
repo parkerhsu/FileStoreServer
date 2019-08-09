@@ -13,6 +13,7 @@ import (
 
 	"FileStoreServer/meta"
 	"FileStoreServer/util"
+	"FileStoreServer/store/oss"
 )
 
 func IndexHanlder(w http.ResponseWriter, r *http.Request) {
@@ -64,6 +65,18 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		newFile.Seek(0, 0)
 		fileMeta.FileSha1 = util.FileSha1(newFile)
+
+		// 写入OSS
+		newFile.Seek(0, 0)
+		ossPath := "oss/" + fileMeta.FileSha1
+		err = oss.Bucket().PutObject(ossPath, newFile)
+		if err != nil {
+			log.Println(err)
+			w.Write([]byte("Upload failed!"))
+			return
+		}
+		fileMeta.Location = ossPath
+
 
 		meta.UpdateFileMeta(fileMeta)
 		if ok := meta.UpdateFileMetaDB(fileMeta); !ok {
@@ -226,4 +239,12 @@ func TryFastLoadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write(resp.JSONBytes())
 	return
+}
+
+func DownloadURLHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	fileHash := r.Form.Get("filehash")
+	row, _ := db.GetFileMeta(fileHash)
+	signedURL := oss.DownloadURL(row.FileAddr.String)
+	w.Write([]byte(signedURL))
 }
