@@ -75,7 +75,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("Upload failed!"))
 			return
 		}
-		fileMeta.Location = ossPath
+		//fileMeta.Location = ossPath
 
 
 		meta.UpdateFileMeta(fileMeta)
@@ -93,7 +93,8 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		http.Redirect(w, r, "/static/view/home.html", http.StatusFound)
+		// http.Redirect(w, r, "/static/view/home.html", http.StatusFound)
+		http.Redirect(w, r, "/file/upload/suc", http.StatusFound)
 	}
 }
 
